@@ -68,7 +68,7 @@ module Net
       end
 
       # There is no duration if the ping failed
-      bool ? @duration : bool
+      bool ? @duration : nil
     end
 
     alias ping? ping
