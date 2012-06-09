@@ -1,4 +1,5 @@
 require File.join(File.dirname(__FILE__), 'ping')
+require 'benchmark'
 
 # The Net module serves as a namespace only.
 module Net
@@ -11,14 +12,14 @@ module Net
 
     # Returns whether or not Errno::ECONNREFUSED is considered a successful
     # ping. The default is false.
-    # 
+    #
     def self.service_check
       @@service_check
     end
 
     # Sets whether or not an Errno::ECONNREFUSED should be considered a
     # successful ping.
-    # 
+    #
     def self.service_check=(bool)
       unless bool.kind_of?(TrueClass) || bool.kind_of?(FalseClass)
         raise ArgumentError, 'argument must be true or false'
@@ -29,22 +30,25 @@ module Net
     # This method attempts to ping a host and port using a TCPSocket with
     # the host, port and timeout values passed in the constructor.  Returns
     # true if successful, or false otherwise.
-    # 
+    #
     # Note that, by default, an Errno::ECONNREFUSED return result will be
     # considered a failed ping.  See the documentation for the
     # Ping::TCP.service_check= method if you wish to change this behavior.
-    # 
+    #
     def ping(host=@host)
       super(host)
 
       bool = false
       tcp = nil
-      start_time = Time.now
+
 
       begin
+
         Timeout.timeout(@timeout){
           begin
-            tcp = TCPSocket.new(host, @port)
+            @duration = Benchmark.realtime do
+              tcp = TCPSocket.new(host, @port)
+            end
           rescue Errno::ECONNREFUSED => err
             if @@service_check
               bool = true
@@ -64,20 +68,18 @@ module Net
       end
 
       # There is no duration if the ping failed
-      @duration = Time.now - start_time if bool
-
-      bool
+      bool ? @duration : bool
     end
 
     alias ping? ping
     alias pingecho ping
-      
+
     # Class method aliases. DEPRECATED.
     class << self
       alias econnrefused service_check
       alias econnrefused= service_check=
       alias ecr service_check
-      alias ecr= service_check=         
+      alias ecr= service_check=
     end
   end
 end
